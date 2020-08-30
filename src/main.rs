@@ -118,7 +118,7 @@ impl Iterator for Tokenizer {
     }
 }
 
-/*
+
 enum Expression {
     AddExpression{
         a: Box<Expression>,
@@ -143,66 +143,54 @@ impl Expression {
 
     fn parse(s: &str) -> Option<Expression> {
         let tokens = Tokenizer::new(s).c();
-        let parser_combinators = vec![
-            &Self::parse_multiply, 
-            &Self::parse_divide, 
-            &Self::parse_add, 
-            &Self::parse_sub, 
-            &Self::parse_value, 
-        ];
+        Self::parse_expression(&tokens)
+    }
 
-        for parser_combinator in parser_combinators.iter() {
-            if let Some(expression, tokens) = parser_combinator(&tokens) {
-
+    fn parse_expression(tokens: &[Token]) -> Option<Expression> {
+        let count = tokens.len();
+        if count == 1 {
+            return match tokens[0] {
+                Token::Value(i) => Some(Expression::Value(i)),
+                _ => None,
             }
         }
-    }
-
-    fn parser_expression(tokens: &Vec<Token>) -> Option<(Expression, &Vec<Token>)> {
-
-    }
-
-    fn parse_multiply(tokens: &Vec<Token>) -> Option<(Expression, &Vec<Token>)> {
-        let Some(a, tokens) = parser_expression(tokens);
-        if token == Token::MultiplyOperator {
-            tokens += 1;
+        for i in 0..count {
+            let token = &tokens[i];
+            match token {
+                Token::AddOperator => {
+                    let tokens_head = &tokens[0..i];
+                    let tokens_tail = &tokens[i+1..tokens.len()];
+                    let head = Self::parse_expression(tokens_head).unwrap();  // TODO better error report
+                    let tail = Self::parse_expression(tokens_tail).unwrap();
+                    return Some(Expression::AddExpression{a:Box::new(head), b:Box::new(tail)});
+                },
+                Token::SubOperator => {
+                    let tokens_head = &tokens[0..i];
+                    let tokens_tail = &tokens[i+1..tokens.len()];
+                    let head = Self::parse_expression(tokens_head).unwrap();
+                    let tail = Self::parse_expression(tokens_tail).unwrap();
+                    return Some(Expression::SubExpression{a:Box::new(head), b:Box::new(tail)});
+                },
+                Token::MultiplyOperator => {
+                    let tokens_head = &tokens[0..i];
+                    let tokens_tail = &tokens[i+1..tokens.len()];
+                    let head = Self::parse_expression(tokens_head).unwrap();
+                    let tail = Self::parse_expression(tokens_tail).unwrap();
+                    return Some(Expression::MultiplyExpression{a:Box::new(head), b:Box::new(tail)});
+                },
+                Token::DivideOperator => {
+                    let tokens_head = &tokens[0..i];
+                    let tokens_tail = &tokens[i+1..tokens.len()];
+                    let head = Self::parse_expression(tokens_head).unwrap();
+                    let tail = Self::parse_expression(tokens_tail).unwrap();
+                    return Some(Expression::DivideExpression{a:Box::new(head), b:Box::new(tail)});
+                },
+                _ => {
+                    continue;
+                }
+            }
         }
-        let Some(b, tokens) = parser_expression(tokens);
-        return Some(Expression::MultiplyExpression(a, b), tokens);
-    }    
-
-    fn parse_divide(tokens: &Vec<Token>) -> Option<(Expression, &Vec<Token>)> {
-        let Some(a, tokens) = parser_expression(tokens);
-        if token == Token::DivideOperator {
-            tokens += 1;
-        }
-        let Some(b, tokens) = parser_expression(tokens);
-        return Some(Expression::MultiplyExpression(a, b), tokens);
-    }
-
-    fn parse_add(tokens: &Vec<Token>) -> Option<(Expression, &Vec<Token>)> {
-        let Some(a, tokens) = parser_expression(tokens);
-        if token == Token::AddOperator {
-            tokens += 1;
-        }
-        let Some(b, tokens) = parser_expression(tokens);
-        return Some(Expression::MultiplyExpression(a, b), tokens);
-    }    
-    
-    fn parse_sub(tokens: &Vec<Token>) -> Option<(Expression, &Vec<Token>)> {
-        let Some(a, tokens) = parser_expression(tokens);
-        if token == Token::SubOperator {
-            tokens += 1;
-        }
-        let Some(b, tokens) = parser_expression(tokens);
-        return Some(Expression::MultiplyExpression(a, b), tokens);
-    }    
-
-    fn parse_value(tokens: &Vec<Token>) -> Option<(Expression, &Vec<Token>)> {
-        if token = u64 {
-            tokens += 1;
-        }
-        return Some(Expression::Value(a), tokens);
+        panic!("parser error");
     }
 
     fn interprete(&self) -> i64 {
@@ -227,8 +215,7 @@ impl Expression {
 }
 
 pub fn calculate(s: &str) -> Result<i64, &str> {
-    // let parse_result = Expression::parse(s);
-    let parse_result = Some(Expression::Value(12));
+    let parse_result = Expression::parse(s);
     match parse_result {
         Some(expression) => Ok(expression.interprete()),
         None => Err("parse failed")
@@ -242,7 +229,7 @@ fn calculate_test() {
     assert_eq!(calculate("6/3").unwrap(), 2);
     assert_eq!(calculate("1+2*3").unwrap(), 7);
 }
-*/
+
 #[test]
 fn tokenize_test() {
     let tokenizer = Tokenizer::new("1+2*3");
@@ -252,5 +239,6 @@ fn tokenize_test() {
 }
 
 fn main() {
-    println!("Hello, world!");
+    let r = calculate("1+1").unwrap();
+    println!("Hello, world! {}", r);
 }
